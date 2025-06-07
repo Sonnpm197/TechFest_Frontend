@@ -1,14 +1,8 @@
 import React, {useState} from 'react';
 import axios from 'axios';
+import {STATUS_ENUM} from "../utils/StatusEnum";
 
 // Sample company names and statuses for demo
-const sampleCompanies = [
-	{name: 'Apple Inc.', status: 'Active'},
-	{name: 'Google LLC', status: 'Pending'},
-	{name: 'Microsoft Corp.', status: 'Inactive'},
-	{name: 'Amazon.com', status: 'Active'},
-	{name: 'Tesla, Inc.', status: 'Active'},
-];
 
 const EmailCompanyList = () => {
 	const [count, setCount] = useState(5);
@@ -33,13 +27,6 @@ const EmailCompanyList = () => {
 		}
 		setLoading(false);
 	};
-
-	// Use sample companies for company name/status, fallback to generic if not enough
-	const getCompany = idx =>
-		sampleCompanies[idx % sampleCompanies.length] || {
-			name: `Company ${idx + 1}`,
-			status: 'Unknown',
-		};
 
 	return (
 		// flex	Makes the container a flexbox
@@ -82,7 +69,6 @@ const EmailCompanyList = () => {
 					</thead>
 					<tbody>
 					{emails.map((email, idx) => {
-						const company = getCompany(idx);
 						return (
 							<React.Fragment key={email.id}>
 								<tr
@@ -92,17 +78,17 @@ const EmailCompanyList = () => {
 										{email.id}
 									</td>
 									<td className="px-6 py-4">
-										<span className="text-lg text-gray-800 font-medium">{company.name}</span>
+										<span className="text-lg text-gray-800 font-medium">{email.company_name}</span>
 									</td>
 									<td className="px-6 py-4">
-												<span className={`text-lg font-medium ${
-													company.status === 'Active'
-														? 'text-green-600'
-														: company.status === 'Pending'
-															? 'text-yellow-600'
-															: 'text-gray-500'
-												}`}>
-												  {company.status}
+										<span className={`text-lg font-medium ${
+											email.status === 3
+												? 'text-green-600'
+												: email.status === 2
+													? 'text-yellow-600'
+													: 'text-gray-500'
+										}`}>
+												  {STATUS_ENUM[email.status]}
 												</span>
 									</td>
 									<td className="px-6 py-4 flex gap-2">
@@ -127,25 +113,23 @@ const EmailCompanyList = () => {
 								{expandedId === email.id && (
 									<tr>
 										<td colSpan={4} className="bg-gray-50 px-8 py-6 border-t border-gray-200">
-											<div>
-												<div className="mb-2 text-gray-700 font-semibold">From:</div>
-												<div
-													className="mb-4 whitespace-pre-wrap text-gray-800 text-base font-mono bg-white rounded-lg p-4 shadow-inner border border-gray-100">
-													{email.from ||
-														<span className="italic text-gray-400">No Sender</span>}
-												</div>
-												<div className="mb-2 text-gray-700 font-semibold">Subject:</div>
-												<div
-													className="mb-4 whitespace-pre-wrap text-gray-800 text-base font-mono bg-white rounded-lg p-4 shadow-inner border border-gray-100">
-													{email.subject ||
-														<span className="italic text-gray-400">No Subject</span>}
-												</div>
-												<div className="mb-2 text-gray-700 font-semibold">Content:</div>
-												<div
-													className="whitespace-pre-wrap text-gray-800 text-base font-mono bg-white rounded-lg p-4 shadow-inner border border-gray-100">
-													{email.body ||
-														<span className="italic text-gray-400">No content</span>}
-												</div>
+											<div className="mb-2 text-gray-700 font-semibold">From:</div>
+											<div
+												className="mb-4 whitespace-pre-wrap text-gray-800 text-base font-mono bg-white rounded-lg p-4 shadow-inner border border-gray-100">
+												{email.sender ||
+													<span className="italic text-gray-400">No Sender</span>}
+											</div>
+											<div className="mb-2 text-gray-700 font-semibold">Subject:</div>
+											<div
+												className="mb-4 whitespace-pre-wrap text-gray-800 text-base font-mono bg-white rounded-lg p-4 shadow-inner border border-gray-100">
+												{email.subject ||
+													<span className="italic text-gray-400">No Subject</span>}
+											</div>
+											<div className="mb-2 text-gray-700 font-semibold">Content:</div>
+											<div
+												className="whitespace-pre-wrap break-all text-gray-800 text-base font-mono bg-white rounded-lg p-4 shadow-inner border border-gray-100">
+												{email.body ||
+													<span className="italic text-gray-400">No content</span>}
 											</div>
 										</td>
 									</tr>
