@@ -111,8 +111,7 @@ export default function Jumbotron() {
                     marginLeft: "-2rem", // Offset the mx-8 margin
                     paddingLeft: "2rem", // Add back padding for visual spacing
                     paddingRight: "2rem"
-                }}
-            >
+                }}>
                 {cards.map((card, idx) => (
                     <div
                         key={idx}
@@ -121,8 +120,7 @@ export default function Jumbotron() {
                             backgroundImage: `url(${card.image})`,
                             backgroundSize: "cover",
                             backgroundPosition: "center",
-                        }}
-                    >
+                        }}>
                         <div className="absolute inset-0 bg-black bg-opacity-30"></div>
                         <div className="relative z-10 p-8">
                             <div className="text-lg font-medium opacity-80 mb-2">{card.title}</div>
@@ -141,11 +139,9 @@ export default function Jumbotron() {
                         currentIndex === 0
                             ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                             : "bg-white text-gray-700 hover:bg-gray-100"
-                    }`}
-                >
+                    }`}>
                     <FaChevronLeft />
                 </button>
-
 
                 <button
                     onClick={scrollRight}
@@ -154,8 +150,7 @@ export default function Jumbotron() {
                         currentIndex === cards.length - 1
                             ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                             : "bg-white text-gray-700 hover:bg-gray-100"
-                    }`}
-                >
+                    }`}>
                     <FaChevronRight />
                 </button>
             </div>

@@ -5,6 +5,8 @@ export const getLoginUser = async () => {
     const response = await axios.get(
       `${process.env.REACT_APP_BACKEND_URL}/auth/user-info`,
       {
+        // tells the browser to include credentials like cookies,
+        // authorization headers, or TLS client certificates when making a cross-origin request.
         withCredentials: true,
       }
     );
