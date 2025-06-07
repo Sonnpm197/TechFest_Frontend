@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { getLoginUser } from '../services/UserService';
 import axios from "axios"; // adjust the path if needed
+import { useNavigate } from 'react-router-dom';
 
 const Navigation = () => {
     const [userName, setUserName] = useState(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -20,6 +22,7 @@ const Navigation = () => {
                 withCredentials: true,
             });
             setUserName(null);
+            navigate('/'); // Redirect to home
         } catch (err) {
             console.error('Logout failed:', err);
         }

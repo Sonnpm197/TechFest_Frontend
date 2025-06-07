@@ -85,6 +85,7 @@ const EmailCompanyList = () => {
 				{ withCredentials: true }
 			);
 			alert('Submitted successfully!');
+			window.location.reload(); // <-- reloads the page
 		} catch (err) {
 			alert('Failed to submit: ' + (err.response?.data?.error || err.message));
 		}
@@ -112,6 +113,11 @@ const EmailCompanyList = () => {
 			{loading && <div className="text-center text-gray-500 mb-4">Loading...</div>}
 			{error && <div className="text-center text-red-500 mb-4">{error}</div>}
 			<div className="overflow-x-auto">
+				{emails.length === 0 && !loading ? (
+						<div className="flex items-center justify-center h-96 w-full">
+							<span className="text-gray-400 text-lg">No emails found.</span>
+						</div>
+					) :
 				<table className="min-w-full bg-white rounded-xl">
 					<thead>
 					<tr>
@@ -220,13 +226,9 @@ const EmailCompanyList = () => {
 							</React.Fragment>
 						);
 					})}
-					{emails.length === 0 && !loading && (
-						<tr>
-							<td colSpan={4} className="text-center py-8 text-gray-400 text-lg">No emails found.</td>
-						</tr>
-					)}
 					</tbody>
 				</table>
+				}
 			</div>
 			{/* Submit button at bottom right */}
 			<button
