@@ -1,7 +1,8 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import LandingPage from "./components/LandingPage.jsx";
-import Dashboard from "./components/Dashboard.jsx";
+import LandingPage from "./components/nlp/LandingPage.jsx";
+import Dashboard from "./components/nlp/Dashboard.jsx";
+import FallSafe from "./components/dl/FallSafe";
 
 function App() {
   return (
@@ -9,6 +10,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dl" element={<FallSafe />} />
       </Routes>
     </Router>
   );

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getLoginUser } from '../services/UserService';
+import { getLoginUser } from '../../services/UserService';
 import axios from "axios"; // adjust the path if needed
 import { useNavigate } from 'react-router-dom';
 

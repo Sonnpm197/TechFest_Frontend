@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import axios from 'axios';
-import { STATUS_ENUM } from "../utils/StatusEnum";
-import {getLoginUser} from "../services/UserService";
+import { STATUS_ENUM } from "../../utils/StatusEnum";
+import {getLoginUser} from "../../services/UserService";
 
 const EmailCompanyList = () => {
 	const [count, setCount] = useState(5);
@@ -234,7 +234,7 @@ const EmailCompanyList = () => {
 			<button
 				className="mx-6 fixed bottom-8 right-8 px-6 py-3 bg-blue-600 text-white rounded-lg shadow-lg text-lg font-semibold hover:bg-blue-700 transition"
 				onClick={handleSubmit}>
-				Submit
+				Save
 			</button>
 		</div>
 	);

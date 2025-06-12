@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {getLoginUser} from "../services/UserService";
+import {getLoginUser} from "../../services/UserService";
 import Navigation from "./Navigation";
 import EmailCompanyList from "./EmailCompanyList";
 
