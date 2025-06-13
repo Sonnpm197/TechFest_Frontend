@@ -1,23 +1,13 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { io } from "socket.io-client";
-
-const logs = [
-	{ time: '10:01', event: 'Fall detected in Living Room' },
-	{ time: '10:15', event: 'No fall detected' },
-	{ time: '10:30', event: 'Fall detected in Kitchen' },
-	{ time: '10:45', event: 'No fall detected' },
-	{ time: '11:00', event: 'No fall detected' },
-	{ time: '11:15', event: 'Fall detected in Bedroom' },
-	{ time: '11:30', event: 'No fall detected' },
-];
+import React, {useState, useRef, useEffect} from 'react';
+import {io} from "socket.io-client";
+import {format} from 'date-fns';
 
 function FallSafe() {
 	const [isWebcam, setIsWebcam] = useState(false); // open webcam state
 	const [showPlay, setShowPlay] = useState(true); // play button in the middle
 	const [hovered, setHovered] = useState(false); // hover to show play button
 	const [processedFrame, setProcessedFrame] = useState(null); // returned frame from backend
-	const [fallStatus, setFallStatus] = useState('No Fall Detected'); // fall / not fall
-	const [lastChecked, setLastChecked] = useState('--:--'); // last check
+	const [lastChecked, setLastChecked] = useState(""); // last check
 	const [socket, setSocket] = useState(null); // connect to websocket
 
 	const streamRef = useRef(null); // taken from webcam
@@ -25,43 +15,51 @@ function FallSafe() {
 	const sideVideoRef = useRef(null); // side video
 	const canvasRef = useRef(null); // to extract images and emit
 	const frameIntervalRef = useRef(null); // control interval to send to backend
+	const saveLogIntervalRef = useRef(null); // save log
 
 	// --- Fall detection logic from old code ---
 	const fallTimerRef = useRef(null);
-	const fallConfirmedRef = useRef(false);
-	const [fallConfirmTimeMs, setFallConfirmTimeMs] = useState(1000);
+	const standingTimerRef = useRef(null);
+	const [fallStatus, setFallStatus] = useState('No Fall Detected'); // fall / not fall
 
-	useEffect(() => {
-		const storedSeconds = localStorage.getItem('notifySeconds');
-		if (storedSeconds) {
-			const seconds = parseInt(storedSeconds, 10);
-			if (!isNaN(seconds) && seconds > 0) {
-				setFallConfirmTimeMs(seconds * 1000);
-			}
-		}
-	}, []);
+	// notification
+	const [notificationDelay, setNotificationDelay] = useState(5);
+	const [emergencyCallDelay, setEmergencyCallDelay] = useState(30);
+	const [emergencyContact, setEmergencyContact] = useState('');
+	const [enableEmergencyCall, setEnableEmergencyCall] = useState(false);
+
+	const [logs, setLogs] = useState([]);
 
 	function handleFallDetected(isFalling) {
 		if (isFalling) {
-			if (!fallTimerRef.current && !fallConfirmedRef.current) {
+			if (standingTimerRef.current) {
+				clearTimeout(standingTimerRef.current);
+				standingTimerRef.current = null;
+			}
+
+			const notifyTime = notificationDelay ? notificationDelay * 1000 : 3000;
+			if (!fallTimerRef.current) {
 				fallTimerRef.current = setTimeout(() => {
-					fallConfirmedRef.current = true;
 					setFallStatus('Fall Detected');
 					fallTimerRef.current = null;
-				}, fallConfirmTimeMs);
+				}, notifyTime);
 			}
 		} else {
-			if (fallTimerRef.current) {
-				clearTimeout(fallTimerRef.current);
-				fallTimerRef.current = null;
-			}
-			if (fallConfirmedRef.current) {
-				fallConfirmedRef.current = false;
-				setFallStatus('No Fall Detected');
+			// Person is standing
+			if (!standingTimerRef.current) {
+				// Start the 2-second standing timer
+				standingTimerRef.current = setTimeout(() => {
+					// After 2 seconds of continuous standing
+					if (fallTimerRef.current) {
+						clearTimeout(fallTimerRef.current);
+						fallTimerRef.current = null;
+					}
+					setFallStatus('No Fall Detected');
+					standingTimerRef.current = null;
+				}, 2000); // 2 seconds
 			}
 		}
 	}
-	// --- End fall detection logic ---
 
 	// Set video srcObject when webcam is active
 	useEffect(() => {
@@ -84,11 +82,46 @@ function FallSafe() {
 		}
 	}, [isWebcam]);
 
+	useEffect(() => {
+		const savedLogs = localStorage.getItem('fallDetectionLogs');
+		if (savedLogs) {
+			try {
+				setLogs(JSON.parse(savedLogs));
+			} catch (error) {
+				console.error('Error parsing logs from localStorage:', error);
+				setLogs([]); // Set empty array if parsing fails
+			}
+		} else {
+			setLogs([]); // Set empty array if no logs found
+		}
+	}, []);
+
+	const updateLogs = (event) => {
+		const newLog = {
+			time: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
+			event: event
+		};
+		setLogs(prevLogs => {
+			const updatedLogs = [newLog, ...prevLogs];
+			return updatedLogs.slice(0, 100);
+		});
+	}
+
+	const saveLogs = () => {
+		console.log("saveLogs");
+		localStorage.setItem('fallDetectionLogs', JSON.stringify(logs));
+	}
+
+	const clearLogs = () => {
+		localStorage.removeItem('fallDetectionLogs');
+		setLogs([]);
+	}
+
 	// Start webcam and connect to Socket.IO
-	const handlePlayPause = async () => {
+	const handlePlayWebcam = async () => {
 		if (!isWebcam) {
 			try {
-				const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+				const stream = await navigator.mediaDevices.getUserMedia({video: true});
 				streamRef.current = stream;
 				setIsWebcam(true);
 				setShowPlay(true);
@@ -108,7 +141,14 @@ function FallSafe() {
 				// Listen for results
 				sock.on("result", (data) => {
 					handleFallDetected(data.fall);
-					setLastChecked(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+					setLastChecked(format(new Date(), 'yyyy-MM-dd HH:mm:ss'));
+
+					if (!saveLogIntervalRef.current) {
+						saveLogIntervalRef.current = setInterval(() => {
+							updateLogs(fallStatus)
+						}, 3000);
+					}
+
 					if (data.frame) {
 						setProcessedFrame(`data:image/jpeg;base64,${data.frame}`);
 					}
@@ -141,12 +181,19 @@ function FallSafe() {
 			socket.disconnect();
 			setSocket(null);
 		}
-		if (frameIntervalRef.current) {
-			clearInterval(frameIntervalRef.current);
-			frameIntervalRef.current = null;
-		}
+
+		clearIntervals(frameIntervalRef, fallTimerRef, standingTimerRef, saveLogIntervalRef);
 		setProcessedFrame(null);
 		setFallStatus('No Fall Detected');
+	};
+
+	const clearIntervals = (...refs) => {
+		refs.forEach(ref => {
+			if (ref.current) {
+				clearInterval(ref.current);
+				ref.current = null;
+			}
+		});
 	};
 
 	// Only send frames from mainVideoRef
@@ -169,30 +216,16 @@ function FallSafe() {
 					}
 				}, 'image/jpeg', 0.8);
 			}, 120);
-
-			socket.on('result', (data) => {
-				handleFallDetected(data.fall);
-				setLastChecked(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-				if (data.frame) {
-					setProcessedFrame(`data:image/jpeg;base64,${data.frame}`);
-				}
-			});
 		}
 	};
 
-	useEffect(() => {
-		return () => {
-			handleStopWebcam();
-		};
-		// eslint-disable-next-line
-	}, []);
-
 	return (
 		<div className="min-h-screen bg-gray-900 text-white font-sans flex flex-col">
-			<canvas ref={canvasRef} style={{ display: 'none' }} />
+			<canvas ref={canvasRef} style={{display: 'none'}}/>
 			{/* Header with Logo */}
 			<header className="w-full flex items-center h-16 px-8 bg-gray-900 border-b border-gray-800">
-				<span className="text-2xl font-bold tracking-tight text-white select-none" style={{fontFamily: 'SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif'}}>FallSafe</span>
+				<span className="text-2xl font-bold tracking-tight text-white select-none"
+					  style={{fontFamily: 'SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif'}}>FallSafe</span>
 			</header>
 			<div className="flex flex-1">
 				{/* Main content (80%) */}
@@ -206,7 +239,7 @@ function FallSafe() {
 						{!isWebcam && showPlay && (
 							<button
 								className="absolute z-20 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 text-gray-900 rounded-full p-4 shadow-lg focus:outline-none"
-								onClick={handlePlayPause}
+								onClick={handlePlayWebcam}
 								style={{fontSize: 32}}
 							>
 								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
@@ -263,7 +296,25 @@ function FallSafe() {
 						{/* Logs */}
 						<div
 							className="bg-gray-800 rounded-lg p-4 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900">
-							<h2 className="text-lg font-semibold mb-2">Fall Logs</h2>
+							<div className="flex justify-between mb-2">
+								<h2 className="text-lg font-semibold">Activity Logs</h2>
+								<div className="flex justify-between items-center">
+									<button
+										className="text-sm pr-2 text-gray-400 hover:text-white transition-colors duration-200"
+										onClick={() => saveLogs()} // Add this if you want to clear logs
+									>
+										Save Logs
+									</button>
+									<button
+										className="text-sm text-gray-400 hover:text-white transition-colors duration-200"
+										onClick={() => clearLogs()} // Add this if you want to clear logs
+									>
+										Clear Logs
+									</button>
+								</div>
+
+							</div>
+
 							<ul className="space-y-1">
 								{logs.map((log, idx) => (
 									<li key={idx} className="text-sm border-b border-gray-700 pb-1 last:border-b-0">
@@ -274,18 +325,15 @@ function FallSafe() {
 						</div>
 						{/* Status */}
 						<div
-							className="bg-gray-800 rounded-lg p-4 w-1/3 flex flex-col justify-between">
-							<h2 className="text-lg font-semibold">Status</h2>
-							<div className="text-sm break-words">
-								<div>
-									<span className="font-semibold">Fall Status: </span>
-									<span
-										className={fallStatus === 'No Fall Detected' ? 'text-green-400' : 'text-red-400'}>
-										{fallStatus}
-								  	</span>
-								</div>
-								<div><span className="font-semibold">Last Checked:</span> {lastChecked}</div>
+							className="bg-gray-800 rounded-lg p-4 w-1/3 flex flex-col justify-between text-lg break-words">
+							<div>
+								<span className="font-semibold">Fall Status: </span>
+								<span
+									className={`${fallStatus === 'No Fall Detected' ? 'text-green-400' : 'text-red-400'} text-4xl font-bold`}>
+									{fallStatus}
+								</span>
 							</div>
+							<div><span className="font-semibold">Last Checked:</span> {lastChecked}</div>
 						</div>
 					</div>
 				</div>
@@ -294,23 +342,60 @@ function FallSafe() {
 					{/* Settings */}
 					<div className="bg-gray-700 rounded-lg p-4 mb-4" id="settings-box">
 						<h2 className="text-lg font-semibold mb-2">Settings</h2>
-						<div className="space-y-2">
+						<div className="space-y-4">
 							<div>
-								<label className="block text-sm">Sensitivity</label>
-								<input type="range" min="1" max="10" defaultValue="5" className="w-full"/>
+								<label className="block text-sm">Notification Delay (seconds)</label>
+								<input
+									type="number"
+									min="0"
+									max="60"
+									value={notificationDelay}
+									onChange={(e) => setNotificationDelay(parseInt(e.target.value))}
+									className="w-full bg-gray-600 rounded p-1"
+									placeholder="Seconds before notification"
+								/>
+							</div>
+							<div className="flex items-center gap-2">
+								<input
+									type="checkbox"
+									id="enableEmergencyCall"
+									checked={enableEmergencyCall}
+									onChange={(e) => setEnableEmergencyCall(e.target.checked)}
+									className="w-4 h-4 text-blue-600 bg-gray-600 border-gray-600 rounded focus:ring-blue-500"
+								/>
+								<label htmlFor="enableEmergencyCall" className="text-sm text-red-500">Enable Emergency
+									Call</label>
 							</div>
 							<div>
-								<label className="block text-sm">Notification</label>
-								<select className="w-full bg-gray-600 rounded p-1">
-									<option>Email</option>
-									<option>SMS</option>
-									<option>Push</option>
-								</select>
+								<label className="block text-sm">Emergency Call Delay (seconds)</label>
+								<input
+									type="number"
+									min="0"
+									max="120"
+									value={emergencyCallDelay}
+									onChange={(e) => setEmergencyCallDelay(parseInt(e.target.value))}
+									className="w-full bg-gray-600 rounded p-1"
+									placeholder="Seconds before emergency call"
+									disabled={!enableEmergencyCall}
+								/>
+							</div>
+							<div>
+								<label className="block text-sm">Emergency Contact Number</label>
+								<input
+									type="tel"
+									value={emergencyContact}
+									onChange={(e) => setEmergencyContact(e.target.value)}
+									className="w-full bg-gray-600 rounded p-1"
+									placeholder="+1 (555) 555-5555"
+									disabled={!enableEmergencyCall}
+								/>
 							</div>
 						</div>
 					</div>
 					{/* Secondary Video - match height to settings box */}
-					<div className="bg-black rounded-lg shadow-lg flex flex-col items-center justify-center cursor-pointer relative overflow-hidden" style={{height: '168px'}}>
+					<div
+						className="bg-black rounded-lg shadow-lg flex flex-col items-center justify-center cursor-pointer relative overflow-hidden"
+						style={{height: '168px'}}>
 						{isWebcam ? (
 							<video
 								ref={sideVideoRef}
@@ -320,7 +405,8 @@ function FallSafe() {
 								className="absolute top-0 left-0 w-full h-full object-fill rounded-lg"
 							/>
 						) : (
-							<div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-gray-800 rounded-lg">
+							<div
+								className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-gray-800 rounded-lg">
 								<span className="text-lg text-gray-400 font-semibold">Side Camera</span>
 							</div>
 						)}
@@ -330,7 +416,8 @@ function FallSafe() {
 				</div>
 			</div>
 		</div>
-	);
+	)
+		;
 }
 
 export default FallSafe;
