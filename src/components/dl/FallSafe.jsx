@@ -19,7 +19,9 @@ function FallSafe() {
 	// --- Fall detection logic from old code ---
 	const fallTimerRef = useRef(null);
 	const standingTimerRef = useRef(null);
-	const [fallStatus, setFallStatus] = useState('No Fall Detected'); // fall / not fall
+	const FALL_STATUS = 'Fall Detected';
+	const NO_FALL_STATUS = 'No Fall Detected';
+	const [fallStatus, setFallStatus] = useState(NO_FALL_STATUS); // fall / not fall
 
 	// notification
 	const [notificationDelay, setNotificationDelay] = useState(5);
@@ -89,9 +91,9 @@ function FallSafe() {
 			const notifyTime = notificationDelay ? notificationDelay * 1000 : 3000;
 			if (!fallTimerRef.current) {
 				fallTimerRef.current = setTimeout(() => {
-					setFallStatus('Fall Detected');
+					setFallStatus(FALL_STATUS);
 					fallTimerRef.current = null;
-					updateLogs('Fall Detected');
+					updateLogs(FALL_STATUS);
 				}, notifyTime);
 			}
 
@@ -125,9 +127,9 @@ function FallSafe() {
 						clearTimeout(emergencyCallTimerRef.current);
 						emergencyCallTimerRef.current = null;
 					}
-					setFallStatus('No Fall Detected');
+					setFallStatus(NO_FALL_STATUS);
 					standingTimerRef.current = null;
-					updateLogs('No Fall Detected');
+					updateLogs(NO_FALL_STATUS);
 				}, 2000); // 2 seconds
 			}
 		}
@@ -241,9 +243,9 @@ function FallSafe() {
 		}
 
 		setLastCallTime(null);
-		clearIntervals(frameIntervalRef, fallTimerRef, standingTimerRef, emergencyCallTimerRef);
 		setProcessedFrame(null);
-		setFallStatus('No Fall Detected');
+		setFallStatus(NO_FALL_STATUS);
+		clearIntervals(frameIntervalRef, fallTimerRef, standingTimerRef, emergencyCallTimerRef);
 	};
 
 	const clearIntervals = (...refs) => {
@@ -389,7 +391,7 @@ function FallSafe() {
 							<div>
 								<span className="font-semibold">Fall Status: </span>
 								<span
-									className={`${fallStatus === 'No Fall Detected' ? 'text-green-400' : 'text-red-400'} text-4xl font-bold`}>
+									className={`${fallStatus === NO_FALL_STATUS ? 'text-green-400' : 'text-red-400'} text-4xl font-bold`}>
 									{fallStatus}
 								</span>
 							</div>
