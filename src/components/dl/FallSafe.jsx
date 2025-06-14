@@ -1,6 +1,7 @@
 import React, {useState, useRef, useEffect} from 'react';
 import {io} from "socket.io-client";
 import {format} from 'date-fns';
+import FallSafeHeader from "./FallSafeHeader";
 
 function FallSafe() {
 	const [isWebcam, setIsWebcam] = useState(false); // open webcam state
@@ -56,7 +57,7 @@ function FallSafe() {
 		console.log('Sending number to Twilio:', formattedNumber); // Should show +61411840738
 
 		try {
-			const response = await fetch('http://localhost:3001/dl/phone/make-call', {
+			const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/dl/phone/make-call`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -285,10 +286,7 @@ function FallSafe() {
 		<div className="min-h-screen bg-gray-900 text-white font-sans flex flex-col">
 			<canvas ref={canvasRef} style={{display: 'none'}}/>
 			{/* Header with Logo */}
-			<header className="w-full flex items-center h-16 px-8 bg-gray-900 border-b border-gray-800">
-				<span className="text-2xl font-bold tracking-tight text-white select-none"
-					  style={{fontFamily: 'SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif'}}>FallSafe</span>
-			</header>
+			<FallSafeHeader/>
 			<div className="flex flex-1">
 				{/* Main content (80%) */}
 				<div className="flex flex-col w-5/6 p-6 space-y-4">
