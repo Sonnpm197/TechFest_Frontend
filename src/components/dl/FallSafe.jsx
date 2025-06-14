@@ -15,7 +15,6 @@ function FallSafe() {
 	const sideVideoRef = useRef(null); // side video
 	const canvasRef = useRef(null); // to extract images and emit
 	const frameIntervalRef = useRef(null); // control interval to send to backend
-	const saveLogIntervalRef = useRef(null); // save log
 
 	// --- Fall detection logic from old code ---
 	const fallTimerRef = useRef(null);
@@ -24,13 +23,63 @@ function FallSafe() {
 
 	// notification
 	const [notificationDelay, setNotificationDelay] = useState(5);
-	const [emergencyCallDelay, setEmergencyCallDelay] = useState(30);
-	const [emergencyContact, setEmergencyContact] = useState('');
+	const [emergencyCallDelay, setEmergencyCallDelay] = useState(10);
+	const [emergencyContact, setEmergencyContact] = useState('+61411840738');
 	const [enableEmergencyCall, setEnableEmergencyCall] = useState(false);
-
 	const [logs, setLogs] = useState([]);
 
-	function handleFallDetected(isFalling) {
+	const [lastCallTime, setLastCallTime] = useState(0); // Track last emergency call time
+	const lastCallTimeRef = useRef(0);
+	const emergencyCallTimerRef = useRef(null); // Timer for emergency call
+
+	const makeEmergencyCall = async () => {
+		const now = Date.now();
+		if (now - lastCallTimeRef.current < 5 * 60 * 1000) {
+			console.log("Emergency call throttled");
+			return;
+		}
+
+		if (!enableEmergencyCall) {
+			console.log("Emergency call is not enabled");
+			return;
+		}
+
+		if (!emergencyContact) {
+			console.log('Please set an emergency contact number');
+			return;
+		}
+
+		// Remove all spaces from the number
+		const formattedNumber = emergencyContact.replace(/\s+/g, '');
+		console.log('Sending number to Twilio:', formattedNumber); // Should show +61411840738
+
+		try {
+			const response = await fetch('http://localhost:3001/dl/phone/make-call', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					phoneNumber: formattedNumber
+				})
+			});
+
+			const data = await response.json();
+
+			if (data.success) {
+				updateLogs(`Emergency call made to ${emergencyContact}`)
+			}
+		} catch (error) {
+			console.error('Error making call:', error);
+			alert('Failed to make emergency call');
+		}
+	};
+
+	useEffect(() => {
+		lastCallTimeRef.current = lastCallTime;
+	}, [lastCallTime]);
+
+	const handleFallDetected = (isFalling) => {
 		if (isFalling) {
 			if (standingTimerRef.current) {
 				clearTimeout(standingTimerRef.current);
@@ -42,24 +91,47 @@ function FallSafe() {
 				fallTimerRef.current = setTimeout(() => {
 					setFallStatus('Fall Detected');
 					fallTimerRef.current = null;
+					updateLogs('Fall Detected');
 				}, notifyTime);
+			}
+
+			// Emergency call timer (NEW)
+			const now = Date.now();
+			if (
+				enableEmergencyCall &&
+				(!lastCallTimeRef.current || now - lastCallTimeRef.current > 5 * 60 * 1000) &&
+				!emergencyCallTimerRef.current
+			) {
+				emergencyCallTimerRef.current = setTimeout(async () => {
+					// Double-check throttle here too, in case of race conditions
+					const callNow = Date.now();
+					if (!lastCallTimeRef.current || callNow - lastCallTimeRef.current > 5 * 60 * 1000) {
+						await makeEmergencyCall();
+						setLastCallTime(Date.now());
+						lastCallTimeRef.current = Date.now(); // update ref immediately
+					}
+					emergencyCallTimerRef.current = null;
+				}, (emergencyCallDelay || 30) * 1000);
 			}
 		} else {
 			// Person is standing
 			if (!standingTimerRef.current) {
-				// Start the 2-second standing timer
 				standingTimerRef.current = setTimeout(() => {
-					// After 2 seconds of continuous standing
 					if (fallTimerRef.current) {
 						clearTimeout(fallTimerRef.current);
 						fallTimerRef.current = null;
 					}
+					if (emergencyCallTimerRef.current) {
+						clearTimeout(emergencyCallTimerRef.current);
+						emergencyCallTimerRef.current = null;
+					}
 					setFallStatus('No Fall Detected');
 					standingTimerRef.current = null;
+					updateLogs('No Fall Detected');
 				}, 2000); // 2 seconds
 			}
 		}
-	}
+	};
 
 	// Set video srcObject when webcam is active
 	useEffect(() => {
@@ -68,17 +140,12 @@ function FallSafe() {
 				mainVideoRef.current.srcObject = streamRef.current;
 				mainVideoRef.current.play();
 			}
-			// if (sideVideoRef.current) {
-			// 	sideVideoRef.current.srcObject = streamRef.current;
-			// 	sideVideoRef.current.play();
-			// }
+
 		} else {
 			if (mainVideoRef.current) {
 				mainVideoRef.current.srcObject = null;
 			}
-			// if (sideVideoRef.current) {
-			// 	sideVideoRef.current.srcObject = null;
-			// }
+
 		}
 	}, [isWebcam]);
 
@@ -143,12 +210,6 @@ function FallSafe() {
 					handleFallDetected(data.fall);
 					setLastChecked(format(new Date(), 'yyyy-MM-dd HH:mm:ss'));
 
-					if (!saveLogIntervalRef.current) {
-						saveLogIntervalRef.current = setInterval(() => {
-							updateLogs(fallStatus)
-						}, 3000);
-					}
-
 					if (data.frame) {
 						setProcessedFrame(`data:image/jpeg;base64,${data.frame}`);
 					}
@@ -166,10 +227,7 @@ function FallSafe() {
 			mainVideoRef.current.pause();
 			mainVideoRef.current.srcObject = null;
 		}
-		// if (sideVideoRef.current) {
-		// 	sideVideoRef.current.pause();
-		// 	sideVideoRef.current.srcObject = null;
-		// }
+
 		if (streamRef.current) {
 			streamRef.current.getTracks().forEach(track => track.stop());
 			streamRef.current = null;
@@ -182,7 +240,8 @@ function FallSafe() {
 			setSocket(null);
 		}
 
-		clearIntervals(frameIntervalRef, fallTimerRef, standingTimerRef, saveLogIntervalRef);
+		setLastCallTime(null);
+		clearIntervals(frameIntervalRef, fallTimerRef, standingTimerRef, emergencyCallTimerRef);
 		setProcessedFrame(null);
 		setFallStatus('No Fall Detected');
 	};
@@ -191,6 +250,7 @@ function FallSafe() {
 		refs.forEach(ref => {
 			if (ref.current) {
 				clearInterval(ref.current);
+				clearTimeout(ref.current);
 				ref.current = null;
 			}
 		});
@@ -416,8 +476,7 @@ function FallSafe() {
 				</div>
 			</div>
 		</div>
-	)
-		;
+	);
 }
 
 export default FallSafe;
