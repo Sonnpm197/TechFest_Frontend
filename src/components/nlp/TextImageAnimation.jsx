@@ -10,9 +10,9 @@ export default function TextImageAnimation() {
     ];
 
     const texts = [
-        "Ace your interviews with our smart email importer.",
-        "Track your interview status and company details easily.",
-        "Edit and manage your interview opportunities in one place.",
+        "Harness cutting-edge technology powered by advanced language models like GPT-2 and BART. Our intelligent system automatically imports your interview-related emails and extracts essential details such as company names and interview outcomes, saving you time and effort throughout your job search.",
+        "Stay organized every step of the way by editing the status of each opportunity, saving your progress, and reopening your list whenever you return. Our platform ensures you never lose track of important updates and can always pick up right where you left off.",
+        "Easily export your interview results to share with others or keep for your own records. With all your interview opportunities managed in one convenient place, you can focus on preparing for success and making the most of every opportunity.",
     ];
 
     return (

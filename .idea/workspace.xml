@@ -5,11 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b177f8fb-5f6c-46d0-a669-4d87cf9ed68e" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/components/dl/FallSafeHeader.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/components/dl/FallSafeVideoUploader.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/App.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/App.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/components/dl/FallSafe.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/dl/FallSafe.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/nlp/Jumbotron.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/nlp/Jumbotron.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/nlp/Navigation.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/nlp/Navigation.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/nlp/TextImageAnimation.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/nlp/TextImageAnimation.jsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -35,6 +36,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "git-widget-placeholder": "master",
+    "ignore.virus.scanning.warn.message": "true",
     "last_opened_file_path": "C:/Users/sonnpm/projects/FallSafe_UI",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
@@ -69,7 +71,10 @@
       <workItem from="1749709486846" duration="7379000" />
       <workItem from="1749717117721" duration="7508000" />
       <workItem from="1749784563342" duration="24527000" />
-      <workItem from="1749862388120" duration="19829000" />
+      <workItem from="1749862388120" duration="22266000" />
+      <workItem from="1750040585021" duration="5353000" />
+      <workItem from="1750144868930" duration="9745000" />
+      <workItem from="1750203104936" duration="1132000" />
     </task>
     <servers />
   </component>

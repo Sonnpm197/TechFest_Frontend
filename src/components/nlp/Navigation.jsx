@@ -33,7 +33,7 @@ const Navigation = () => {
             <div className="flex items-center space-x-6">
                 <div className="text-2xl font-semibold tracking-wide select-none">
                     <a href="/">
-                        Interview Importer
+                        Offer Tracker
                     </a>
 
                 </div>
