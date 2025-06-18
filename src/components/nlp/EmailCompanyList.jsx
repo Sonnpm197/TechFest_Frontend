@@ -155,11 +155,11 @@ const EmailCompanyList = () => {
 												"text-lg font-medium border border-gray-300 rounded px-2 py-1 focus:outline-none " +
 												(focusedSelectId === email.id
 													? "" // No color when focused
-													: (edited.status ?? email.status) === 3
+													: (edited.status ?? email.status) === 2
 														? "text-green-600"
-														: (edited.status ?? email.status) === 2
+														: (edited.status ?? email.status) === 1
 															? "text-yellow-600" :
-															(edited.status ?? email.status) === 1
+															(edited.status ?? email.status) === 0
 																? "text-red-600"
 																: "text-black")
 											}

@@ -349,7 +349,7 @@ function FallSafe() {
 							</button>
 						)}
 						{/* Main video logic */}
-						<div style={{ position: "relative", width: "100%", height: "100%" }}>
+						<div style={{position: "relative", width: "100%", height: "100%"}}>
 							{isMainWebcam ? (
 								isWebcam ? (
 									<>
@@ -359,7 +359,11 @@ function FallSafe() {
 											muted
 											controls={false}
 											onLoadedMetadata={handleVideoReady}
-											style={{ width: "100%", height: "100%", visibility: isWebcam ? "visible" : "hidden" }}
+											style={{
+												width: "100%",
+												height: "100%",
+												visibility: isWebcam ? "visible" : "hidden"
+											}}
 											className="absolute top-0 left-0 w-full h-full object-fill rounded-lg"/>
 										{/* Show processed frame on top if available */}
 										{processedFrame && (
@@ -367,12 +371,14 @@ function FallSafe() {
 												src={processedFrame}
 												alt="Processed"
 												className="absolute top-0 left-0 w-full h-full object-fill rounded-lg"
-												style={{ zIndex: 10 }}/>
+												style={{zIndex: 10}}/>
 										)}
 									</>
 								) : (
-									<div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-gray-800 rounded-lg">
-										<span className="text-2xl text-gray-400 font-semibold">Main Camera (Webcam)</span>
+									<div
+										className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-gray-800 rounded-lg">
+										<span
+											className="text-2xl text-gray-400 font-semibold">Main Camera (Webcam)</span>
 									</div>
 								)
 							) : (
@@ -501,7 +507,8 @@ function FallSafe() {
 									<span className="text-lg text-gray-400 font-semibold">Webcam Active</span>
 								</div>
 							) : (
-								<div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-gray-800 rounded-lg">
+								<div
+									className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-gray-800 rounded-lg">
 									<span className="text-lg text-gray-400 font-semibold">Webcam Not Active</span>
 								</div>
 							)
