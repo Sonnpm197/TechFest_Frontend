@@ -1,23 +1,23 @@
-import React, {useState, useRef, useEffect} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {io} from "socket.io-client";
 import {format} from 'date-fns';
 import FallSafeHeader from "./FallSafeHeader";
 
 function FallSafe() {
-	const [isWebcam, setIsWebcam] = useState(false); // open webcam state
+	const [isPlaying, setIsPlaying] = useState(false); // open webcam state
 	const [showPlay, setShowPlay] = useState(true); // play button in the middle
 	const [hovered, setHovered] = useState(false); // hover to show play button
 	const [processedFrame, setProcessedFrame] = useState(null); // returned frame from backend
 	const [lastChecked, setLastChecked] = useState(""); // last check
 	const [socket, setSocket] = useState(null); // connect to websocket
-	const [isMainWebcam, setIsMainWebcam] = useState(true);
+	const [isMainCamera, setIsMainCamera] = useState(true);
 
 	const streamRef = useRef(null); // taken from webcam
 	const mainVideoRef = useRef(null); // main video
-	const sideVideoRef = useRef(null); // side video
 	const canvasRef = useRef(null); // to extract images and emit
 	const frameIntervalRef = useRef(null); // control interval to send to backend
-	const rasberyStreamRef = useRef(null);
+	const rasberyStreamRef = useRef(null); // image stream ref from rasbery
+	const rasberyStreamIntervalRef = useRef(null); // control rasbery interval to send to backend
 
 	// --- Fall detection logic from old code ---
 	const fallTimerRef = useRef(null);
@@ -36,7 +36,7 @@ function FallSafe() {
 	const [lastCallTime, setLastCallTime] = useState(0); // Track last emergency call time
 	const lastCallTimeRef = useRef(0);
 	const emergencyCallTimerRef = useRef(null); // Timer for emergency call
-	const handleSwapCameras = () => setIsMainWebcam((prev) => !prev);
+	const handleSwapCameras = () => setIsMainCamera((prev) => !prev);
 
 	const makeEmergencyCall = async () => {
 		const now = Date.now();
@@ -139,22 +139,10 @@ function FallSafe() {
 		}
 	};
 
-	// Set video srcObject when webcam is active
-	useEffect(() => {
-		if (isWebcam && isMainWebcam && streamRef.current && mainVideoRef.current) {
-			mainVideoRef.current.srcObject = streamRef.current;
-			mainVideoRef.current.play();
-		} else if (mainVideoRef.current) {
-			mainVideoRef.current.srcObject = null;
-		}
-	}, [isWebcam, isMainWebcam]);
-
 	// for rasbery sending
 	useEffect(() => {
-		let intervalId = null;
-		// Only run when stream is main
-		if (!isMainWebcam && rasberyStreamRef.current && canvasRef.current && socket) {
-			intervalId = setInterval(() => {
+		if (isPlaying && !isMainCamera && rasberyStreamRef.current && canvasRef.current) {
+			rasberyStreamIntervalRef.current = setInterval(() => {
 				const img = rasberyStreamRef.current;
 				const canvas = canvasRef.current;
 				if (!img || !canvas) return;
@@ -164,7 +152,7 @@ function FallSafe() {
 				canvas.height = img.naturalHeight;
 				ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 				canvas.toBlob((blob) => {
-					if (blob) {
+					if (blob && socket) {
 						blob.arrayBuffer().then(buffer => {
 							socket.emit('frame', new Uint8Array(buffer));
 						});
@@ -172,10 +160,14 @@ function FallSafe() {
 				}, 'image/jpeg', 0.6);
 			}, 120); // every 120ms
 		}
-		return () => {
-			if (intervalId) clearInterval(intervalId);
-		};
-	}, [isMainWebcam]);
+
+		if (isPlaying && isMainCamera && streamRef.current && mainVideoRef.current) {
+			mainVideoRef.current.srcObject = streamRef.current;
+			mainVideoRef.current.play();
+		} else if (mainVideoRef.current) {
+			mainVideoRef.current.srcObject = null;
+		}
+	}, [isPlaying, isMainCamera]);
 
 	useEffect(() => {
 		const savedLogs = localStorage.getItem('fallDetectionLogs');
@@ -186,8 +178,6 @@ function FallSafe() {
 				console.error('Error parsing logs from localStorage:', error);
 				setLogs([]); // Set empty array if parsing fails
 			}
-		} else {
-			setLogs([]); // Set empty array if no logs found
 		}
 	}, []);
 
@@ -203,7 +193,6 @@ function FallSafe() {
 	}
 
 	const saveLogs = () => {
-		console.log("saveLogs");
 		localStorage.setItem('fallDetectionLogs', JSON.stringify(logs));
 	}
 
@@ -213,44 +202,57 @@ function FallSafe() {
 	}
 
 	// Start webcam and connect to Socket.IO
-	const handlePlayWebcam = async () => {
-		if (!isWebcam) {
-			try {
-				const stream = await navigator.mediaDevices.getUserMedia({video: true});
-				streamRef.current = stream;
-				setIsWebcam(true);
-				setShowPlay(true);
-				setTimeout(() => setShowPlay(false), 1000);
-
-				// Connect to Socket.IO
-				const sock = io("ws://localhost:3001/dl/ws", {
-					transports: ["websocket"],
-				});
-
-				setSocket(sock);
-
-				sock.on("connect", () => {
-					console.log("Socket.IO connected!");
-				});
-
-				// Listen for results
-				sock.on("result", (data) => {
-					handleFallDetected(data.fall);
-					setLastChecked(format(new Date(), 'yyyy-MM-dd HH:mm:ss'));
-
-					if (data.frame) {
-						setProcessedFrame(`data:image/jpeg;base64,${data.frame}`);
-					}
-				});
-
-			} catch (err) {
-				alert('Could not access webcam: ' + err.message);
+	const handlePlayCamera = async () => {
+		if (!isPlaying) {
+			if (isMainCamera) {
+				try {
+					streamRef.current = await navigator.mediaDevices.getUserMedia({video: true});
+				} catch (err) {
+					alert('Could not access webcam: ' + err.message);
+				}
+			} else {
+				rasberyStreamRef.current.src = process.env.REACT_APP_RASBERY_STREAM
 			}
+			setIsPlaying(true);
+			setShowPlay(false);
+			connectWebsocket();
 		}
 	};
 
+	const connectWebsocket = () => {
+		const sock = io("ws://localhost:3001/dl/ws", {
+			transports: ["websocket"],
+		});
+
+		setSocket(sock);
+
+		sock.on("connect", () => {
+			console.log("Socket.IO connected!");
+		});
+
+		sock.on("disconnect", (reason) => {
+			console.log("Socket.IO disconnected!", reason);
+		});
+
+		sock.on("result", (data) => {
+			handleFallDetected(data.fall);
+			setLastChecked(format(new Date(), 'yyyy-MM-dd HH:mm:ss'));
+
+			if (data.frame) {
+				setProcessedFrame(`data:image/jpeg;base64,${data.frame}`);
+			}
+		});
+	}
+
+	const disconnectWebsocket = () => {
+		if (socket) {
+			socket.disconnect();
+			setSocket(null);
+		}
+	}
+
 	// Stop webcam and disconnect Socket.IO
-	const handleStopWebcam = () => {
+	const handleStopCamera = () => {
 		if (mainVideoRef.current) {
 			mainVideoRef.current.pause();
 			mainVideoRef.current.srcObject = null;
@@ -260,18 +262,20 @@ function FallSafe() {
 			streamRef.current.getTracks().forEach(track => track.stop());
 			streamRef.current = null;
 		}
-		setIsWebcam(false);
+
+		if (rasberyStreamRef.current) {
+			rasberyStreamRef.current.src = null;
+		}
+
+		setIsPlaying(false);
 		setShowPlay(true);
 
-		if (socket) {
-			socket.disconnect();
-			setSocket(null);
-		}
+		disconnectWebsocket();
 
 		setLastCallTime(null);
 		setProcessedFrame(null);
 		setFallStatus(NO_FALL_STATUS);
-		clearIntervals(frameIntervalRef, fallTimerRef, standingTimerRef, emergencyCallTimerRef);
+		clearIntervals(frameIntervalRef, fallTimerRef, standingTimerRef, emergencyCallTimerRef, rasberyStreamIntervalRef);
 	};
 
 	const clearIntervals = (...refs) => {
@@ -302,12 +306,12 @@ function FallSafe() {
 							socket.emit('frame', new Uint8Array(buffer));
 						});
 					}
-				}, 'image/jpeg', 0.8);
+				}, 'image/jpeg', 0.6);
 			}, 120);
 		}
 	};
 
-	console.log("REACT_APP_RASBERY_STREAM", process.env.REACT_APP_RASBERY_STREAM)
+	// console.log("REACT_APP_RASBERY_STREAM", process.env.REACT_APP_RASBERY_STREAM)
 
 	return (
 		<div className="min-h-screen bg-gray-900 text-white font-sans flex flex-col">
@@ -323,10 +327,10 @@ function FallSafe() {
 						onMouseEnter={() => setHovered(true)}
 						onMouseLeave={() => setHovered(false)}>
 						{/* Play button overlay: only show if main is webcam and not active */}
-						{isMainWebcam && !isWebcam && showPlay && (
+						{!isPlaying && showPlay && (
 							<button
 								className="absolute z-20 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 text-gray-900 rounded-full p-4 shadow-lg focus:outline-none"
-								onClick={handlePlayWebcam}
+								onClick={handlePlayCamera}
 								style={{fontSize: 32}}
 							>
 								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
@@ -336,10 +340,10 @@ function FallSafe() {
 							</button>
 						)}
 						{/* Pause button overlay (show on hover when webcam is active) */}
-						{isWebcam && hovered && (
+						{isPlaying && hovered && (
 							<button
 								className="absolute z-20 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 text-gray-900 rounded-full p-4 shadow-lg focus:outline-none"
-								onClick={handleStopWebcam}
+								onClick={handleStopCamera}
 								style={{fontSize: 32}}
 							>
 								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
@@ -350,8 +354,8 @@ function FallSafe() {
 						)}
 						{/* Main video logic */}
 						<div style={{position: "relative", width: "100%", height: "100%"}}>
-							{isMainWebcam ? (
-								isWebcam ? (
+							{isMainCamera ? (
+								isPlaying ? (
 									<>
 										<video
 											ref={mainVideoRef}
@@ -362,10 +366,9 @@ function FallSafe() {
 											style={{
 												width: "100%",
 												height: "100%",
-												visibility: isWebcam ? "visible" : "hidden"
+												visibility: isPlaying ? "visible" : "hidden"
 											}}
 											className="absolute top-0 left-0 w-full h-full object-fill rounded-lg"/>
-										{/* Show processed frame on top if available */}
 										{processedFrame && (
 											<img
 												src={processedFrame}
@@ -375,20 +378,30 @@ function FallSafe() {
 										)}
 									</>
 								) : (
-									<div
-										className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-gray-800 rounded-lg">
-										<span
-											className="text-2xl text-gray-400 font-semibold">Main Camera (Webcam)</span>
+									<div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-gray-800 rounded-lg">
+										<span className="text-2xl text-gray-400 font-semibold">Main Camera (Webcam)</span>
 									</div>
 								)
 							) : (
-								<img
-									ref={rasberyStreamRef}
-									src={process.env.REACT_APP_RASBERY_STREAM}
-									alt="Stream"
-									style={{width: "100%", height: "100%"}}
-									className="absolute top-0 left-0 w-full h-full object-fill rounded-lg"
-								/>
+								<>
+									<img
+										ref={rasberyStreamRef}
+										// src={process.env.REACT_APP_RASBERY_STREAM}
+										crossOrigin="anonymous"
+										alt="Stream"
+										style={{width: "100%", height: "100%", visibility: isPlaying ? "visible" : "hidden"}}
+										className="absolute top-0 left-0 w-full h-full object-fill rounded-lg"
+									/>
+									{processedFrame && (
+										<img
+											src={processedFrame}
+											alt="Processed"
+											className="absolute top-0 left-0 w-full h-full object-fill rounded-lg"
+											style={{zIndex: 10}}/>
+									)}
+								</>
+
+
 							)}
 						</div>
 					</div>
@@ -402,14 +415,12 @@ function FallSafe() {
 								<div className="flex justify-between items-center">
 									<button
 										className="text-sm pr-2 text-gray-400 hover:text-white transition-colors duration-200"
-										onClick={() => saveLogs()} // Add this if you want to clear logs
-									>
+										onClick={() => saveLogs()}>
 										Save Logs
 									</button>
 									<button
 										className="text-sm text-gray-400 hover:text-white transition-colors duration-200"
-										onClick={() => clearLogs()} // Add this if you want to clear logs
-									>
+										onClick={() => clearLogs()}>
 										Clear Logs
 									</button>
 								</div>
@@ -497,21 +508,17 @@ function FallSafe() {
 					<div
 						className="bg-black rounded-lg shadow-lg flex flex-col items-center justify-center cursor-pointer relative overflow-hidden"
 						style={{height: '168px'}}>
-						{isMainWebcam ? (
-							<></>
+						{isMainCamera ? (
+							<div
+								className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-gray-800 rounded-lg">
+								<span className="text-lg text-gray-400 font-semibold">Swap to Side Camera</span>
+							</div>
 						) : (
 							// Side camera is webcam preview (placeholder if not active)
-							isWebcam ? (
-								<div
-									className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-gray-800 rounded-lg">
-									<span className="text-lg text-gray-400 font-semibold">Webcam Active</span>
-								</div>
-							) : (
-								<div
-									className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-gray-800 rounded-lg">
-									<span className="text-lg text-gray-400 font-semibold">Webcam Not Active</span>
-								</div>
-							)
+							<div
+								className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-gray-800 rounded-lg">
+								<span className="text-lg text-gray-400 font-semibold">Swap to Main Camera</span>
+							</div>
 						)}
 					</div>
 					{/* Swap button below the side camera */}
