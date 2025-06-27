@@ -5,8 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b177f8fb-5f6c-46d0-a669-4d87cf9ed68e" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/public/videos/fullver.mp4" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/components/dl/FallSafe.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/dl/FallSafe.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/nlp/HeroSection.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/nlp/HeroSection.jsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -33,7 +35,7 @@
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;master&quot;,
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/sonnpm/projects/FallSafe_UI&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/sonnpm/projects/TechFest/frontend/public/videos&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
@@ -44,6 +46,9 @@
   }
 }</component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\sonnpm\projects\TechFest\frontend\public\videos" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\sonnpm\projects\TechFest\frontend\src\components\nlp" />
       <recent name="C:\Users\sonnpm\projects\TechFest\frontend\src\components\dl" />
@@ -74,7 +79,9 @@
       <workItem from="1750304818064" duration="4856000" />
       <workItem from="1750340152518" duration="1122000" />
       <workItem from="1750381170909" duration="9522000" />
-      <workItem from="1750398564038" duration="1626000" />
+      <workItem from="1750398564038" duration="7102000" />
+      <workItem from="1750739670030" duration="3937000" />
+      <workItem from="1750985653217" duration="58000" />
     </task>
     <servers />
   </component>

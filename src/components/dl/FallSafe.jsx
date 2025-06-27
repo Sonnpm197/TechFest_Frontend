@@ -157,8 +157,8 @@ function FallSafe() {
 							socket.emit('frame', new Uint8Array(buffer));
 						});
 					}
-				}, 'image/jpeg', 0.6);
-			}, 120); // every 120ms
+				}, 'image/jpeg', 0.5);
+			}, 140); // every 120ms
 		}
 
 		if (isPlaying && isMainCamera && streamRef.current && mainVideoRef.current) {
@@ -306,7 +306,7 @@ function FallSafe() {
 							socket.emit('frame', new Uint8Array(buffer));
 						});
 					}
-				}, 'image/jpeg', 0.6);
+				}, 'image/jpeg', 0.5);
 			}, 120);
 		}
 	};
@@ -378,8 +378,10 @@ function FallSafe() {
 										)}
 									</>
 								) : (
-									<div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-gray-800 rounded-lg">
-										<span className="text-2xl text-gray-400 font-semibold">Main Camera (Webcam)</span>
+									<div
+										className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-gray-800 rounded-lg">
+										<span
+											className="text-2xl text-gray-400 font-semibold">Main Camera (Webcam)</span>
 									</div>
 								)
 							) : (
@@ -389,7 +391,11 @@ function FallSafe() {
 										// src={process.env.REACT_APP_RASBERY_STREAM}
 										crossOrigin="anonymous"
 										alt="Stream"
-										style={{width: "100%", height: "100%", visibility: isPlaying ? "visible" : "hidden"}}
+										style={{
+											width: "100%",
+											height: "100%",
+											visibility: isPlaying ? "visible" : "hidden"
+										}}
 										className="absolute top-0 left-0 w-full h-full object-fill rounded-lg"
 									/>
 									{processedFrame && (

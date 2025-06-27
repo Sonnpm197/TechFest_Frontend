@@ -27,8 +27,11 @@ export default function HeroSection() {
                     <video
                         className="w-full h-full object-cover rounded-2xl"
                         controls
-                        poster="/images/poster.jpg">
-                        <source src="/videos/demo.mp4" type="video/mp4"/>
+                        poster="/images/poster.jpg"
+                        autoPlay
+                        muted
+                    >
+                        <source src="/videos/fullver.mp4" type="video/mp4"/>
                         Your browser does not support the video tag.
                     </video>
                     {/* Overlay only on the image */}
