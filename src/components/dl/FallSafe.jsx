@@ -112,7 +112,7 @@ function FallSafe() {
 					// Double-check throttle here too, in case of race conditions
 					const callNow = Date.now();
 					if (!lastCallTimeRef.current || callNow - lastCallTimeRef.current > 5 * 60 * 1000) {
-						await makeEmergencyCall();
+						// await makeEmergencyCall();
 						setLastCallTime(Date.now());
 						lastCallTimeRef.current = Date.now(); // update ref immediately
 					}
@@ -158,7 +158,7 @@ function FallSafe() {
 						});
 					}
 				}, 'image/jpeg', 0.5);
-			}, 140); // every 120ms
+			}, 120); // every 120ms
 		}
 
 		if (isPlaying && isMainCamera && streamRef.current && mainVideoRef.current) {
